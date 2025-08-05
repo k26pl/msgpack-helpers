@@ -1,0 +1,28 @@
+{
+  "name": "@k26pl/msgpack-helpers",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "private": false,
+  "scripts": {
+    "build": "tsc",
+    "build-dep": "tsc",
+    "dev": "tsc -w --preserveWatchOutput",
+    "test": "node --import @k26pl/ts --test \"**/*.test.ts\""
+  },
+  "keywords": [],
+  "author": "k26 <k26@k26.pl>",
+  "license": "MPL-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "*",
+    "@k26pl/ts": "*"
+  }
+}
