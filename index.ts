@@ -295,5 +295,5 @@ export type Client = {
 };
 export type TransportFactory = (
   groupId: number,
-  onConnect: (c: Client) => void
+  onConnect: (c: Client, san?:string) => void
 ) => void;
