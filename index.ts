@@ -120,8 +120,11 @@ export class Packer {
     let ua = new Uint8Array(ab);
     this.appendBytes(ua);
   }
-  i64() {
-    throw new PackingError("64bit integers are not supported by javascript");
+  i64(x:bigint) {
+    let ia=new BigInt64Array([x]);
+    let ab = ia.buffer;
+    let ua = new Uint8Array(ab);
+    this.appendBytes(ua);
   }
   u16(x: number) {
     clamp(x, 65536);
@@ -135,8 +138,9 @@ export class Packer {
     this.u8((x >> 16) & 255);
     this.u8((x >> 24) & 255);
   }
-  u64() {
-    throw new PackingError("64bit uintegers are not supported by javascript");
+  u64(x:bigint) {
+    this.u32(Number(x & 4294967296n))
+    this.u32(Number((x>>32n) & 4294967296n))
   }
   str(x: string) {
     let enc = new TextEncoder().encode(x);
@@ -205,6 +209,27 @@ export class Unpacker {
       throw e;
     }
   }
+  u64(){
+    try {
+      let r = this.#buf.getBigUint64(this.#i, true);
+      this.#i += 8;
+      return r;
+    } catch (e) {
+      console.error(`cannot get byte at index ${this.#i}:`, e, this.#buf);
+      throw e;
+    }
+  }
+  i64(){
+    try {
+      let r = this.#buf.getBigInt64(this.#i, true);
+      this.#i += 8;
+      return r;
+    } catch (e) {
+      console.error(`cannot get byte at index ${this.#i}:`, e, this.#buf);
+      throw e;
+    }
+  }
+  
   i8() {
     try {
       let r = this.#buf.getInt8(this.#i);
