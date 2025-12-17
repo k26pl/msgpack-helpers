@@ -139,8 +139,8 @@ export class Packer {
     this.u8((x >> 24) & 255);
   }
   u64(x:bigint) {
-    this.u32(Number(x & 4294967296n))
-    this.u32(Number((x>>32n) & 4294967296n))
+    this.u32(Number(x & 4294967295n))
+    this.u32(Number((x>>32n) & 4294967295n))
   }
   str(x: string) {
     let enc = new TextEncoder().encode(x);
