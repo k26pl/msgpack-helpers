@@ -5,7 +5,8 @@
  */
 
 
-
+// These return static outputs or the input, no need to test for that
+/* node:coverage disable */
 export type Result<OK, ERR> =
   | {
       ok: true;
@@ -67,6 +68,8 @@ type bType =
   | "Int8"
   | "Int16"
   | "Int32";
+//this is tested as part of other tests
+/* node:coverage disable */
 function toBinary(x: number, type: bType = "Uint32") {
   const bytesNeeded = globalThis[`${type}Array`].BYTES_PER_ELEMENT;
   const dv = new DataView(new ArrayBuffer(bytesNeeded));
@@ -80,18 +83,39 @@ export class UnpackingError extends Error {
     super(`Error during unpacking: ${cause}`);
   }
 }
-
+const BUF_BLOCK_SIZE=1024*512;
+/* node:coverage enable */ 
 export class Packer {
   constructor() {
-    this.#buf = [];
+    this.#buf = new Uint8Array(BUF_BLOCK_SIZE);
+    this.#dv=new DataView(this.#buf.buffer);
   }
-  #buf: number[];
+  #buf: Uint8Array;
+  #i:number=0;
+  #dv:DataView;
+  #len=BUF_BLOCK_SIZE;
+  resize(next_el=0){
+    if(this.#i+next_el>this.#len){
+      let new_buf=new Uint8Array(this.#len+BUF_BLOCK_SIZE);
+      let new_dv=new DataView(new_buf.buffer);
+      new_buf.set(this.#buf)
+      this.#len+=BUF_BLOCK_SIZE
+      this.#buf=new_buf
+      this.#dv=new_dv;
+    }
+    
+  }
   u8(x: number) {
     clamp(x, 255);
-    this.#buf.push(x & 0xff);
+    this.#dv.setUint8(this.#i,x);
+    this.#i++;
+    this.resize();
+    
   }
   appendBytes(x: Uint8Array) {
-    this.#buf.push(...x);
+    this.resize(x.length);
+    this.#buf.set(x,this.#i);
+    this.#i+=x.length;
   }
   u8a(x: Uint8Array) {
     if (x.length > 4294967296)
@@ -101,24 +125,15 @@ export class Packer {
   }
   i8(x: number) {
     clamp(x, 127, -127);
-    let ia = new Int8Array([x]);
-    let ab = ia.buffer;
-    let ua = new Uint8Array(ab);
-    this.appendBytes(ua);
+    this.appendBytes(toBinary(x, "Int8"));
   }
   i16(x: number) {
     clamp(x, 32768, -32768);
-    let ia = new Int16Array([x]);
-    let ab = ia.buffer;
-    let ua = new Uint8Array(ab);
-    this.appendBytes(ua);
+    this.appendBytes(toBinary(x, "Int16"));
   }
   i32(x: number) {
     clamp(x, 2147483648, -2147483648);
-    let ia = new Int32Array([x]);
-    let ab = ia.buffer;
-    let ua = new Uint8Array(ab);
-    this.appendBytes(ua);
+    this.appendBytes(toBinary(x, "Int32"));
   }
   i64(x:bigint) {
     let ia=new BigInt64Array([x]);
@@ -150,11 +165,17 @@ export class Packer {
     this.u8(x === true ? 1 : 0);
   }
   pack() {
-    return new Uint8Array(this.#buf);
+    return new Uint8Array(this.#buf.subarray(0,this.#i));
   }
 }
 export class Unpacker {
-  constructor(buf: ArrayBuffer) {
+  constructor(in_buf: ArrayBuffer | Uint8Array<ArrayBuffer>) {
+    let buf:ArrayBuffer;
+    if(in_buf instanceof Uint8Array){
+      buf=in_buf.buffer;
+    }else{
+      buf=in_buf;
+    }
     this.#buf = new DataView(buf);
     this.#i = 0;
   }
@@ -293,12 +314,25 @@ export class Unpacker {
       throw e;
     }
   }
+  u8a() {
+    try {
+      let len = this.u32();
+      let ua = new Uint8Array(this.#buf.buffer.slice(this.#i,this.#i+len));
+      this.#i+=len;
+      return ua;
+    } catch (e) {
+      console.error(`cannot get byte at index ${this.#i}:`, e, this.#buf);
+      throw e;
+    }
+  }
+  /* node:coverage disable */
   _dbg_get_buf() {
     return this.#buf;
   }
   reset() {
     this.#i = 0;
   }
+  /* node:coverage enable */
 }
 
 export type TransportFactory_ = (groupId: number) => {
