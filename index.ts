@@ -335,7 +335,7 @@ export class Unpacker {
   /* node:coverage enable */
 }
 
-export type TransportFactory_ = (groupId: number) => {
+export type TransportFactory_ = (groupId: string) => {
   onMessage: (
     cb: (
       u: Unpacker,
@@ -353,6 +353,6 @@ export type Client = {
   factory(): TransportFactory;
 };
 export type TransportFactory = (
-  groupId: number,
+  groupId: string,
   onConnect: (c: Client, san?:string) => void
 ) => void;
